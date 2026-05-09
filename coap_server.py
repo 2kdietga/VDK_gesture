@@ -58,7 +58,8 @@ def main():
             print("From:", client_ip, client_port)
             print("Path:", request.path)
             print("Code:", request.code)
-            print("Payload raw:", request.payload.decode("utf-8", errors="ignore"))
+            payload_raw = request.payload.decode("utf-8", errors="replace")
+            print("Payload raw:", payload_raw)
 
             if request.code != COAP_CODE_POST:
                 response_data = {
@@ -89,7 +90,7 @@ def main():
                 continue
 
             try:
-                payload_text = request.payload.decode("utf-8")
+                payload_text = payload_raw
                 payload = json.loads(payload_text)
             except Exception:
                 payload = None

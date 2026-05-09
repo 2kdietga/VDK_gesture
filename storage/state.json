@@ -2,16 +2,28 @@
   "esp32": {
     "ip": "192.168.2.50",
     "port": 5683,
-    "last_seen": null
+    "last_seen": "2026-05-09 08:55:41"
   },
   "led": "OFF",
   "motor": "ON",
-  "last_gesture": [],
-  "last_payload": null,
+  "last_gesture": [
+    "LEFT",
+    "RIGHT",
+    "RIGHT",
+    "RIGHT"
+  ],
+  "last_payload": {
+    "sequence": [
+      "LEFT",
+      "RIGHT",
+      "RIGHT",
+      "RIGHT"
+    ]
+  },
   "last_command": {
     "motor": "ON"
   },
-  "last_message": "Da luu cau hinh thanh cong",
+  "last_message": "Matched motor_on: Bat quat",
   "gesture_rules": {
     "led_on": [
       "LEFT",
