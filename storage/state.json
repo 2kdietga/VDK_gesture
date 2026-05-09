@@ -1,0 +1,41 @@
+{
+  "esp32": {
+    "ip": "192.168.2.50",
+    "port": 5683,
+    "last_seen": null
+  },
+  "led": "OFF",
+  "motor": "ON",
+  "last_gesture": [],
+  "last_payload": null,
+  "last_command": {
+    "motor": "ON"
+  },
+  "last_message": "Da luu cau hinh thanh cong",
+  "gesture_rules": {
+    "led_on": [
+      "LEFT",
+      "DOWN",
+      "LEFT",
+      "RIGHT"
+    ],
+    "led_off": [
+      "RIGHT",
+      "LEFT",
+      "RIGHT",
+      "LEFT"
+    ],
+    "motor_on": [
+      "LEFT",
+      "RIGHT",
+      "RIGHT",
+      "RIGHT"
+    ],
+    "motor_off": [
+      "DOWN",
+      "LEFT",
+      "DOWN",
+      "LEFT"
+    ]
+  }
+}
