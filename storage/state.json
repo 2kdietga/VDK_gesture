@@ -2,28 +2,28 @@
   "esp32": {
     "ip": "192.168.2.50",
     "port": 5683,
-    "last_seen": "2026-05-09 08:55:41"
+    "last_seen": "2026-05-09 09:16:52"
   },
   "led": "OFF",
   "motor": "ON",
   "last_gesture": [
     "LEFT",
     "RIGHT",
-    "RIGHT",
+    "LEFT",
     "RIGHT"
   ],
+  "last_move": "RIGHT",
+  "gesture_event_id": 7,
   "last_payload": {
     "sequence": [
       "LEFT",
       "RIGHT",
-      "RIGHT",
+      "LEFT",
       "RIGHT"
     ]
   },
-  "last_command": {
-    "motor": "ON"
-  },
-  "last_message": "Matched motor_on: Bat quat",
+  "last_command": null,
+  "last_message": "Gui lenh that bai: {'ok': False, 'reason': 'TIMEOUT', 'message': 'Khong nhan duoc response tu ESP32'}",
   "gesture_rules": {
     "led_on": [
       "LEFT",

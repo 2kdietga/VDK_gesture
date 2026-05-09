@@ -1,709 +1,799 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ESP32 Gesture Dashboard</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ESP32 Gesture Dashboard</title>
 
-  <style>
-    :root {
-      --bg: #eef3f8;
-      --panel: #ffffff;
-      --ink: #172033;
-      --muted: #667085;
-      --line: #d8e0ea;
-      --blue: #2563eb;
-      --blue-soft: #e8f0ff;
-      --green: #12805c;
-      --green-soft: #dff7ec;
-      --red: #c03744;
-      --red-soft: #ffe7e9;
-      --amber: #a15c07;
-      --amber-soft: #fff2d7;
-      --shadow: 0 18px 45px rgba(23, 32, 51, 0.09);
-    }
+    <style>
+      :root {
+        --bg: #eef3f8;
+        --panel: #ffffff;
+        --ink: #172033;
+        --muted: #667085;
+        --line: #d8e0ea;
+        --blue: #2563eb;
+        --blue-soft: #e8f0ff;
+        --green: #12805c;
+        --green-soft: #dff7ec;
+        --red: #c03744;
+        --red-soft: #ffe7e9;
+        --shadow: 0 18px 45px rgba(23, 32, 51, 0.09);
+      }
 
-    * {
-      box-sizing: border-box;
-    }
+      * {
+        box-sizing: border-box;
+      }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: var(--bg);
-      color: var(--ink);
-      font-family: Arial, Helvetica, sans-serif;
-    }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Arial, Helvetica, sans-serif;
+      }
 
-    button,
-    input {
-      font: inherit;
-    }
+      button,
+      input {
+        font: inherit;
+      }
 
-    .page {
-      width: min(1180px, calc(100% - 32px));
-      margin: 0 auto;
-      padding: 28px 0 40px;
-    }
-
-    .topbar {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 18px;
-      margin-bottom: 18px;
-    }
-
-    .eyebrow {
-      margin: 0 0 6px;
-      color: var(--blue);
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0;
-      text-transform: uppercase;
-    }
-
-    h1,
-    h2,
-    h3,
-    p {
-      margin-top: 0;
-    }
-
-    h1 {
-      margin-bottom: 6px;
-      font-size: clamp(28px, 4vw, 42px);
-      line-height: 1.05;
-      letter-spacing: 0;
-    }
-
-    h2 {
-      margin-bottom: 16px;
-      font-size: 20px;
-    }
-
-    h3 {
-      margin-bottom: 10px;
-      font-size: 15px;
-    }
-
-    .subtle {
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .api-link {
-      display: inline-flex;
-      align-items: center;
-      min-height: 38px;
-      padding: 0 14px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #fff;
-      color: var(--ink);
-      font-weight: 700;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-
-    .panel {
-      border: 1px solid rgba(216, 224, 234, 0.85);
-      border-radius: 8px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-    }
-
-    .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
-      gap: 18px;
-      padding: 22px;
-      margin-bottom: 18px;
-    }
-
-    .esp-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .metric {
-      min-height: 88px;
-      padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #fbfdff;
-    }
-
-    .metric span {
-      display: block;
-      margin-bottom: 8px;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .metric strong {
-      display: block;
-      overflow-wrap: anywhere;
-      font-size: 18px;
-    }
-
-    .status-line {
-      min-height: 100%;
-      padding: 16px;
-      border-radius: 8px;
-      background: var(--blue-soft);
-      border: 1px solid #c8d8ff;
-    }
-
-    .status-line p {
-      margin-bottom: 0;
-      color: #26456d;
-      line-height: 1.45;
-      overflow-wrap: anywhere;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-      gap: 18px;
-      align-items: start;
-    }
-
-    .controls {
-      display: grid;
-      gap: 18px;
-    }
-
-    .device-card {
-      padding: 18px;
-    }
-
-    .device-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 16px;
-    }
-
-    .device-title {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .icon-box {
-      display: grid;
-      width: 46px;
-      height: 46px;
-      place-items: center;
-      border-radius: 8px;
-      background: var(--blue-soft);
-      color: var(--blue);
-      font-size: 24px;
-      font-weight: 800;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 72px;
-      min-height: 32px;
-      padding: 0 12px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 800;
-    }
-
-    .pill.on {
-      background: var(--green-soft);
-      color: var(--green);
-    }
-
-    .pill.off {
-      background: var(--red-soft);
-      color: var(--red);
-    }
-
-    .button-row {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .btn {
-      min-height: 44px;
-      border: 0;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 800;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-
-    .btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 18px rgba(23, 32, 51, 0.12);
-    }
-
-    .btn-on {
-      background: var(--green-soft);
-      color: var(--green);
-    }
-
-    .btn-off {
-      background: var(--red-soft);
-      color: var(--red);
-    }
-
-    .btn-primary {
-      width: 100%;
-      margin-top: 16px;
-      background: var(--blue);
-      color: #fff;
-    }
-
-    .config-card {
-      padding: 18px;
-    }
-
-    .config-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 120px;
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 6px;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 800;
-    }
-
-    input[type="text"],
-    input[type="number"] {
-      width: 100%;
-      min-height: 44px;
-      padding: 0 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #fbfdff;
-      color: var(--ink);
-      outline: none;
-    }
-
-    input[type="text"]:focus,
-    input[type="number"]:focus {
-      border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
-    }
-
-    .rule-list {
-      display: grid;
-      gap: 12px;
-    }
-
-    .rule-row {
-      display: grid;
-      grid-template-columns: 128px minmax(0, 1fr);
-      gap: 12px;
-      align-items: center;
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #fbfdff;
-    }
-
-    .rule-name {
-      font-weight: 800;
-    }
-
-    .slots {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(64px, 1fr));
-      gap: 8px;
-    }
-
-    .slot {
-      display: grid;
-      min-height: 46px;
-      place-items: center;
-      border: 1px solid #c9d5e4;
-      border-radius: 8px;
-      background: #fff;
-      color: #25324b;
-      cursor: pointer;
-      font-weight: 900;
-      user-select: none;
-    }
-
-    .slot:focus,
-    .slot.active {
-      border-color: var(--blue);
-      background: var(--blue-soft);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
-      outline: none;
-    }
-
-    .hint {
-      margin: 14px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.45;
-    }
-
-    .recent {
-      margin-top: 18px;
-      padding: 18px;
-    }
-
-    .recent-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .code-box {
-      min-height: 48px;
-      padding: 12px;
-      border-radius: 8px;
-      background: #f5f7fb;
-      border: 1px solid var(--line);
-      color: #344054;
-      overflow-wrap: anywhere;
-      white-space: pre-wrap;
-    }
-
-    .empty {
-      color: var(--muted);
-    }
-
-    @media (max-width: 860px) {
-      .topbar,
-      .hero,
-      .layout,
-      .recent-grid {
-        grid-template-columns: 1fr;
+      .page {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 28px 0 40px;
       }
 
       .topbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--blue);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 6px;
+        font-size: clamp(28px, 4vw, 42px);
+        line-height: 1.05;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        margin-bottom: 16px;
+        font-size: 20px;
+      }
+
+      h3 {
+        margin-bottom: 10px;
+        font-size: 15px;
+      }
+
+      .subtle {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .api-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 38px;
+        padding: 0 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .panel {
+        border: 1px solid rgba(216, 224, 234, 0.85);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .hero {
         display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+        gap: 18px;
+        padding: 22px;
+        margin-bottom: 18px;
       }
 
-      .esp-grid,
+      .esp-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .metric {
+        min-height: 88px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdff;
+      }
+
+      .metric span {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .metric strong {
+        display: block;
+        overflow-wrap: anywhere;
+        font-size: 18px;
+      }
+
+      .status-line {
+        min-height: 100%;
+        padding: 16px;
+        border-radius: 8px;
+        background: var(--blue-soft);
+        border: 1px solid #c8d8ff;
+      }
+
+      .status-line p {
+        margin-bottom: 0;
+        color: #26456d;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .controls {
+        display: grid;
+        gap: 18px;
+      }
+
+      .device-card {
+        padding: 18px;
+      }
+
+      .device-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+
+      .device-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .icon-box {
+        display: grid;
+        width: 46px;
+        height: 46px;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-size: 24px;
+        font-weight: 800;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 72px;
+        min-height: 32px;
+        padding: 0 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .pill.on {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .pill.off {
+        background: var(--red-soft);
+        color: var(--red);
+      }
+
+      .button-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .btn {
+        min-height: 44px;
+        border: 0;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 800;
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(23, 32, 51, 0.12);
+      }
+
+      .btn-on {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .btn-off {
+        background: var(--red-soft);
+        color: var(--red);
+      }
+
+      .btn-primary {
+        width: 100%;
+        margin-top: 16px;
+        background: var(--blue);
+        color: #fff;
+      }
+
+      .config-card {
+        padding: 18px;
+      }
+
       .config-grid {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 120px;
+        gap: 12px;
+        margin-bottom: 18px;
       }
-    }
 
-    @media (max-width: 560px) {
-      .page {
-        width: min(100% - 20px, 1180px);
-        padding-top: 18px;
+      label {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        min-height: 44px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdff;
+        color: var(--ink);
+        outline: none;
+      }
+
+      input[type="text"]:focus,
+      input[type="number"]:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+      }
+
+      .rule-list {
+        display: grid;
+        gap: 12px;
       }
 
       .rule-row {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: 128px minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdff;
+      }
+
+      .rule-name {
+        font-weight: 800;
       }
 
       .slots {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(64px, 1fr));
+        gap: 8px;
+      }
+
+      .slot {
+        display: grid;
+        min-height: 46px;
+        place-items: center;
+        border: 1px solid #c9d5e4;
+        border-radius: 8px;
+        background: #fff;
+        color: #25324b;
+        cursor: pointer;
+        font-weight: 900;
+        user-select: none;
+      }
+
+      .slot:focus,
+      .slot.active {
+        border-color: var(--blue);
+        background: var(--blue-soft);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+        outline: none;
+      }
+
+      .hint {
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .recent {
+        margin-top: 18px;
+        padding: 18px;
+      }
+
+      .recent-grid {
+        display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
       }
-    }
-  </style>
-</head>
 
-<body>
-<main class="page">
-  <header class="topbar">
-    <div>
-      <p class="eyebrow">VDK CoAP</p>
-      <h1>ESP32 Gesture Dashboard</h1>
-      <p class="subtle">Theo dõi ESP32, đặt rule bằng phím mũi tên và điều khiển nhanh LED, motor.</p>
-    </div>
-    <a class="api-link" href="{% url 'state_api' %}">/api/state/</a>
-  </header>
+      .code-box {
+        min-height: 48px;
+        padding: 12px;
+        border-radius: 8px;
+        background: #f5f7fb;
+        border: 1px solid var(--line);
+        color: #344054;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+      }
 
-  <section class="panel hero" aria-label="ESP32">
-    <div class="esp-grid">
-      <div class="metric">
-        <span>ESP32 IP</span>
-        <strong id="esp32IpValue">{{ state.esp32.ip|default:"Chưa có" }}</strong>
-      </div>
-      <div class="metric">
-        <span>CoAP Port</span>
-        <strong id="esp32PortValue">{{ state.esp32.port|default:"-" }}</strong>
-      </div>
-      <div class="metric">
-        <span>Last seen</span>
-        <strong id="lastSeenValue">{{ state.esp32.last_seen|default:"Chưa nhận" }}</strong>
-      </div>
-    </div>
-    <div class="status-line">
-      <h2>Thông báo</h2>
-      <p id="lastMessageValue">{{ state.last_message|default:"Chưa có dữ liệu" }}</p>
-    </div>
-  </section>
+      .empty {
+        color: var(--muted);
+      }
 
-  <section class="layout">
-    <div class="controls">
-      <article class="panel device-card">
-        <div class="device-head">
-          <div class="device-title">
-            <div class="icon-box">L</div>
-            <div>
-              <h2>Đèn LED</h2>
-              <p class="subtle">Điều khiển trạng thái LED trên ESP32.</p>
-            </div>
-          </div>
-          {% if state.led == "ON" %}
-            <span class="pill on" id="ledStatus">ON</span>
-          {% else %}
-            <span class="pill off" id="ledStatus">OFF</span>
-          {% endif %}
+      @media (max-width: 860px) {
+        .topbar,
+        .hero,
+        .layout,
+        .recent-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .topbar {
+          display: grid;
+        }
+
+        .esp-grid,
+        .config-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .page {
+          width: min(100% - 20px, 1180px);
+          padding-top: 18px;
+        }
+
+        .rule-row {
+          grid-template-columns: 1fr;
+        }
+
+        .slots {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="page">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">VDK CoAP</p>
+          <h1>ESP32 Gesture Dashboard</h1>
+          <p class="subtle">
+            Theo dõi ESP32, đặt rule bằng phím mũi tên và điều khiển nhanh LED,
+            motor.
+          </p>
         </div>
-        <form method="post" action="{% url 'send_command' %}">
-          {% csrf_token %}
-          <div class="button-row">
-            <button class="btn btn-on" name="action" value="led_on">Bật LED</button>
-            <button class="btn btn-off" name="action" value="led_off">Tắt LED</button>
-          </div>
-        </form>
-      </article>
-
-      <article class="panel device-card">
-        <div class="device-head">
-          <div class="device-title">
-            <div class="icon-box">M</div>
-            <div>
-              <h2>Motor</h2>
-              <p class="subtle">Bật hoặc tắt motor/quạt.</p>
-            </div>
-          </div>
-          {% if state.motor == "ON" %}
-            <span class="pill on" id="motorStatus">ON</span>
-          {% else %}
-            <span class="pill off" id="motorStatus">OFF</span>
-          {% endif %}
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+          "
+        >
+          <a class="api-link" href="{% url 'entertainment' %}">Game</a>
         </div>
-        <form method="post" action="{% url 'send_command' %}">
-          {% csrf_token %}
-          <div class="button-row">
-            <button class="btn btn-on" name="action" value="motor_on">Bật motor</button>
-            <button class="btn btn-off" name="action" value="motor_off">Tắt motor</button>
+      </header>
+
+      <section class="panel hero" aria-label="ESP32">
+        <div class="esp-grid">
+          <div class="metric">
+            <span>ESP32 IP</span>
+            <strong id="esp32IpValue"
+              >{{ state.esp32.ip|default:"Chưa có" }}</strong
+            >
           </div>
-        </form>
-      </article>
-    </div>
+          <div class="metric">
+            <span>CoAP Port</span>
+            <strong id="esp32PortValue"
+              >{{ state.esp32.port|default:"-" }}</strong
+            >
+          </div>
+          <div class="metric">
+            <span>Last seen</span>
+            <strong id="lastSeenValue"
+              >{{ state.esp32.last_seen|default:"Chưa nhận" }}</strong
+            >
+          </div>
+        </div>
+        <div class="status-line">
+          <h2>Thông báo</h2>
+          <p id="lastMessageValue">
+            {{ state.last_message|default:"Chưa có dữ liệu" }}
+          </p>
+        </div>
+      </section>
 
-    <article class="panel config-card">
-      <h2>Cấu hình ESP32 và Gesture Rule</h2>
-      <form method="post" action="{% url 'save_config' %}" id="configForm">
-        {% csrf_token %}
+      <section class="layout">
+        <div class="controls">
+          <article class="panel device-card">
+            <div class="device-head">
+              <div class="device-title">
+                <div class="icon-box">L</div>
+                <div>
+                  <h2>Đèn LED</h2>
+                  <p class="subtle">Điều khiển trạng thái LED trên ESP32.</p>
+                </div>
+              </div>
+              {% if state.led == "ON" %}
+              <span class="pill on" id="ledStatus">ON</span>
+              {% else %}
+              <span class="pill off" id="ledStatus">OFF</span>
+              {% endif %}
+            </div>
+            <form method="post" action="{% url 'send_command' %}">
+              {% csrf_token %}
+              <div class="button-row">
+                <button class="btn btn-on" name="action" value="led_on">
+                  Bật LED
+                </button>
+                <button class="btn btn-off" name="action" value="led_off">
+                  Tắt LED
+                </button>
+              </div>
+            </form>
+          </article>
 
-        <div class="config-grid">
+          <article class="panel device-card">
+            <div class="device-head">
+              <div class="device-title">
+                <div class="icon-box">M</div>
+                <div>
+                  <h2>Motor</h2>
+                  <p class="subtle">Bật hoặc tắt motor/quạt.</p>
+                </div>
+              </div>
+              {% if state.motor == "ON" %}
+              <span class="pill on" id="motorStatus">ON</span>
+              {% else %}
+              <span class="pill off" id="motorStatus">OFF</span>
+              {% endif %}
+            </div>
+            <form method="post" action="{% url 'send_command' %}">
+              {% csrf_token %}
+              <div class="button-row">
+                <button class="btn btn-on" name="action" value="motor_on">
+                  Bật motor
+                </button>
+                <button class="btn btn-off" name="action" value="motor_off">
+                  Tắt motor
+                </button>
+              </div>
+            </form>
+          </article>
+        </div>
+
+        <article class="panel config-card">
+          <h2>Cấu hình ESP32 và Gesture Rule</h2>
+          <form method="post" action="{% url 'save_config' %}" id="configForm">
+            {% csrf_token %}
+
+            <div class="config-grid">
+              <div>
+                <label for="esp32Ip">ESP32 IP</label>
+                <input
+                  id="esp32Ip"
+                  type="text"
+                  name="esp32_ip"
+                  value="{{ state.esp32.ip }}"
+                />
+              </div>
+              <div>
+                <label for="esp32Port">Port</label>
+                <input
+                  id="esp32Port"
+                  type="number"
+                  name="esp32_port"
+                  value="{{ state.esp32.port }}"
+                  min="1"
+                  max="65535"
+                />
+              </div>
+            </div>
+
+            <div class="rule-list">
+              <div class="rule-row" data-rule="led_on">
+                <div class="rule-name">Bật LED</div>
+                <div class="slots" aria-label="Rule bật LED">
+                  {% for gesture in state.gesture_rules.led_on %}
+                  <button class="slot" type="button" data-value="{{ gesture }}">
+                    {{ gesture }}
+                  </button>
+                  {% endfor %}
+                </div>
+                <input
+                  type="hidden"
+                  name="led_on"
+                  value="{{ rules_text.led_on }}"
+                />
+              </div>
+
+              <div class="rule-row" data-rule="led_off">
+                <div class="rule-name">Tắt LED</div>
+                <div class="slots" aria-label="Rule tắt LED">
+                  {% for gesture in state.gesture_rules.led_off %}
+                  <button class="slot" type="button" data-value="{{ gesture }}">
+                    {{ gesture }}
+                  </button>
+                  {% endfor %}
+                </div>
+                <input
+                  type="hidden"
+                  name="led_off"
+                  value="{{ rules_text.led_off }}"
+                />
+              </div>
+
+              <div class="rule-row" data-rule="motor_on">
+                <div class="rule-name">Bật motor</div>
+                <div class="slots" aria-label="Rule bật motor">
+                  {% for gesture in state.gesture_rules.motor_on %}
+                  <button class="slot" type="button" data-value="{{ gesture }}">
+                    {{ gesture }}
+                  </button>
+                  {% endfor %}
+                </div>
+                <input
+                  type="hidden"
+                  name="motor_on"
+                  value="{{ rules_text.motor_on }}"
+                />
+              </div>
+
+              <div class="rule-row" data-rule="motor_off">
+                <div class="rule-name">Tắt motor</div>
+                <div class="slots" aria-label="Rule tắt motor">
+                  {% for gesture in state.gesture_rules.motor_off %}
+                  <button class="slot" type="button" data-value="{{ gesture }}">
+                    {{ gesture }}
+                  </button>
+                  {% endfor %}
+                </div>
+                <input
+                  type="hidden"
+                  name="motor_off"
+                  value="{{ rules_text.motor_off }}"
+                />
+              </div>
+            </div>
+
+            <p class="hint">
+              Bấm vào một ô gesture, sau đó dùng phím mũi tên: ↑ UP, ↓ DOWN, ←
+              LEFT, → RIGHT.
+            </p>
+            <button class="btn btn-primary" type="submit">Lưu cấu hình</button>
+          </form>
+        </article>
+      </section>
+
+      <section class="panel recent" aria-label="Gesture gần nhất">
+        <h2>Gesture gần nhất từ ESP32</h2>
+        <div class="recent-grid">
           <div>
-            <label for="esp32Ip">ESP32 IP</label>
-            <input id="esp32Ip" type="text" name="esp32_ip" value="{{ state.esp32.ip }}">
+            <h3>Last gesture</h3>
+            <div class="code-box" id="lastGestureValue">
+              {% if state.last_gesture %} {{ state.last_gesture|join:" → " }} {%
+              else %}
+              <span class="empty">Chưa có gesture</span>
+              {% endif %}
+            </div>
           </div>
           <div>
-            <label for="esp32Port">Port</label>
-            <input id="esp32Port" type="number" name="esp32_port" value="{{ state.esp32.port }}" min="1" max="65535">
-          </div>
-        </div>
-
-        <div class="rule-list">
-          <div class="rule-row" data-rule="led_on">
-            <div class="rule-name">Bật LED</div>
-            <div class="slots" aria-label="Rule bật LED">
-              {% for gesture in state.gesture_rules.led_on %}
-                <button class="slot" type="button" data-value="{{ gesture }}">{{ gesture }}</button>
-              {% endfor %}
+            <h3>Last command</h3>
+            <div class="code-box" id="lastCommandValue">
+              {% if state.last_command %} {{ state.last_command }} {% else %}
+              <span class="empty">Chưa có lệnh</span>
+              {% endif %}
             </div>
-            <input type="hidden" name="led_on" value="{{ rules_text.led_on }}">
           </div>
-
-          <div class="rule-row" data-rule="led_off">
-            <div class="rule-name">Tắt LED</div>
-            <div class="slots" aria-label="Rule tắt LED">
-              {% for gesture in state.gesture_rules.led_off %}
-                <button class="slot" type="button" data-value="{{ gesture }}">{{ gesture }}</button>
-              {% endfor %}
+          <div>
+            <h3>Payload</h3>
+            <div class="code-box" id="lastPayloadValue">
+              {% if state.last_payload %} {{ state.last_payload }} {% else %}
+              <span class="empty">Chưa có payload</span>
+              {% endif %}
             </div>
-            <input type="hidden" name="led_off" value="{{ rules_text.led_off }}">
           </div>
-
-          <div class="rule-row" data-rule="motor_on">
-            <div class="rule-name">Bật motor</div>
-            <div class="slots" aria-label="Rule bật motor">
-              {% for gesture in state.gesture_rules.motor_on %}
-                <button class="slot" type="button" data-value="{{ gesture }}">{{ gesture }}</button>
-              {% endfor %}
+          <div>
+            <h3>Trạng thái thiết bị</h3>
+            <div class="code-box" id="deviceStateValue">
+              LED: {{ state.led|default:"OFF" }}&#10;Motor: {{
+              state.motor|default:"OFF" }}
             </div>
-            <input type="hidden" name="motor_on" value="{{ rules_text.motor_on }}">
-          </div>
-
-          <div class="rule-row" data-rule="motor_off">
-            <div class="rule-name">Tắt motor</div>
-            <div class="slots" aria-label="Rule tắt motor">
-              {% for gesture in state.gesture_rules.motor_off %}
-                <button class="slot" type="button" data-value="{{ gesture }}">{{ gesture }}</button>
-              {% endfor %}
-            </div>
-            <input type="hidden" name="motor_off" value="{{ rules_text.motor_off }}">
           </div>
         </div>
+      </section>
+    </main>
 
-        <p class="hint">Bấm vào một ô gesture, sau đó dùng phím mũi tên: ↑ UP, ↓ DOWN, ← LEFT, → RIGHT.</p>
-        <button class="btn btn-primary" type="submit">Lưu cấu hình</button>
-      </form>
-    </article>
-  </section>
+    <script>
+      const keyToGesture = {
+        ArrowUp: "UP",
+        ArrowDown: "DOWN",
+        ArrowLeft: "LEFT",
+        ArrowRight: "RIGHT",
+      };
 
-  <section class="panel recent" aria-label="Gesture gần nhất">
-    <h2>Gesture gần nhất từ ESP32</h2>
-    <div class="recent-grid">
-      <div>
-        <h3>Last gesture</h3>
-        <div class="code-box" id="lastGestureValue">
-          {% if state.last_gesture %}
-            {{ state.last_gesture|join:" → " }}
-          {% else %}
-            <span class="empty">Chưa có gesture</span>
-          {% endif %}
-        </div>
-      </div>
-      <div>
-        <h3>Last command</h3>
-        <div class="code-box" id="lastCommandValue">
-          {% if state.last_command %}
-            {{ state.last_command }}
-          {% else %}
-            <span class="empty">Chưa có lệnh</span>
-          {% endif %}
-        </div>
-      </div>
-      <div>
-        <h3>Payload</h3>
-        <div class="code-box" id="lastPayloadValue">
-          {% if state.last_payload %}
-            {{ state.last_payload }}
-          {% else %}
-            <span class="empty">Chưa có payload</span>
-          {% endif %}
-        </div>
-      </div>
-      <div>
-        <h3>Trạng thái thiết bị</h3>
-        <div class="code-box" id="deviceStateValue">LED: {{ state.led|default:"OFF" }}&#10;Motor: {{ state.motor|default:"OFF" }}</div>
-      </div>
-    </div>
-  </section>
-</main>
-
-<script>
-  const keyToGesture = {
-    ArrowUp: "UP",
-    ArrowDown: "DOWN",
-    ArrowLeft: "LEFT",
-    ArrowRight: "RIGHT",
-  };
-
-  function updateRule(row) {
-    const values = Array.from(row.querySelectorAll(".slot")).map((slot) => slot.dataset.value);
-    row.querySelector("input[type='hidden']").value = values.join(" ");
-  }
-
-  function setActiveSlot(slot) {
-    document.querySelectorAll(".slot.active").forEach((item) => item.classList.remove("active"));
-    slot.classList.add("active");
-    slot.focus();
-  }
-
-  document.querySelectorAll(".slot").forEach((slot) => {
-    slot.setAttribute("tabindex", "0");
-    slot.addEventListener("click", () => setActiveSlot(slot));
-    slot.addEventListener("focus", () => slot.classList.add("active"));
-    slot.addEventListener("blur", () => slot.classList.remove("active"));
-
-    slot.addEventListener("keydown", (event) => {
-      const gesture = keyToGesture[event.key];
-      if (!gesture) {
-        return;
+      function updateRule(row) {
+        const values = Array.from(row.querySelectorAll(".slot")).map(
+          (slot) => slot.dataset.value,
+        );
+        row.querySelector("input[type='hidden']").value = values.join(" ");
       }
 
-      event.preventDefault();
-      slot.dataset.value = gesture;
-      slot.textContent = gesture;
-      updateRule(slot.closest(".rule-row"));
-    });
-  });
-
-  function setText(id, value, fallback = "-") {
-    const element = document.getElementById(id);
-    if (!element) {
-      return;
-    }
-    element.textContent = value || fallback;
-  }
-
-  function setStatus(id, value) {
-    const element = document.getElementById(id);
-    if (!element) {
-      return;
-    }
-
-    const status = value === "ON" ? "ON" : "OFF";
-    element.textContent = status;
-    element.classList.toggle("on", status === "ON");
-    element.classList.toggle("off", status !== "ON");
-  }
-
-  function formatValue(value, emptyText) {
-    if (Array.isArray(value)) {
-      return value.length ? value.join(" -> ") : emptyText;
-    }
-
-    if (value && typeof value === "object") {
-      return JSON.stringify(value);
-    }
-
-    return value || emptyText;
-  }
-
-  async function refreshState() {
-    if (document.activeElement && document.activeElement.closest("#configForm")) {
-      return;
-    }
-
-    try {
-      const response = await fetch("{% url 'state_api' %}", { cache: "no-store" });
-      if (!response.ok) {
-        return;
+      function setActiveSlot(slot) {
+        document
+          .querySelectorAll(".slot.active")
+          .forEach((item) => item.classList.remove("active"));
+        slot.classList.add("active");
+        slot.focus();
       }
 
-      const state = await response.json();
-      setText("esp32IpValue", state.esp32 && state.esp32.ip, "Chưa có");
-      setText("esp32PortValue", state.esp32 && state.esp32.port, "-");
-      setText("lastSeenValue", state.esp32 && state.esp32.last_seen, "Chưa nhận");
-      setText("lastMessageValue", state.last_message, "Chưa có dữ liệu");
-      setStatus("ledStatus", state.led);
-      setStatus("motorStatus", state.motor);
-      setText("lastGestureValue", formatValue(state.last_gesture, "Chưa có gesture"));
-      setText("lastCommandValue", formatValue(state.last_command, "Chưa có lệnh"));
-      setText("lastPayloadValue", formatValue(state.last_payload, "Chưa có payload"));
-      setText("deviceStateValue", `LED: ${state.led || "OFF"}\nMotor: ${state.motor || "OFF"}`);
-    } catch (error) {
-      setText("lastMessageValue", "Không đọc được /api/state/");
-    }
-  }
+      document.querySelectorAll(".slot").forEach((slot) => {
+        slot.setAttribute("tabindex", "0");
+        slot.addEventListener("click", () => setActiveSlot(slot));
+        slot.addEventListener("focus", () => slot.classList.add("active"));
+        slot.addEventListener("blur", () => slot.classList.remove("active"));
 
-  setInterval(refreshState, 2000);
-  refreshState();
-</script>
-</body>
+        slot.addEventListener("keydown", (event) => {
+          const gesture = keyToGesture[event.key];
+          if (!gesture) {
+            return;
+          }
+
+          event.preventDefault();
+          slot.dataset.value = gesture;
+          slot.textContent = gesture;
+          updateRule(slot.closest(".rule-row"));
+        });
+      });
+
+      function setText(id, value, fallback = "-") {
+        const element = document.getElementById(id);
+        if (!element) {
+          return;
+        }
+        element.textContent = value || fallback;
+      }
+
+      function setStatus(id, value) {
+        const element = document.getElementById(id);
+        if (!element) {
+          return;
+        }
+
+        const status = value === "ON" ? "ON" : "OFF";
+        element.textContent = status;
+        element.classList.toggle("on", status === "ON");
+        element.classList.toggle("off", status !== "ON");
+      }
+
+      function formatValue(value, emptyText) {
+        if (Array.isArray(value)) {
+          return value.length ? value.join(" -> ") : emptyText;
+        }
+
+        if (value && typeof value === "object") {
+          return JSON.stringify(value);
+        }
+
+        return value || emptyText;
+      }
+
+      async function refreshState() {
+        if (
+          document.activeElement &&
+          document.activeElement.closest("#configForm")
+        ) {
+          return;
+        }
+
+        try {
+          const response = await fetch("{% url 'state_api' %}", {
+            cache: "no-store",
+          });
+          if (!response.ok) {
+            return;
+          }
+
+          const state = await response.json();
+          setText("esp32IpValue", state.esp32 && state.esp32.ip, "Chưa có");
+          setText("esp32PortValue", state.esp32 && state.esp32.port, "-");
+          setText(
+            "lastSeenValue",
+            state.esp32 && state.esp32.last_seen,
+            "Chưa nhận",
+          );
+          setText("lastMessageValue", state.last_message, "Chưa có dữ liệu");
+          setStatus("ledStatus", state.led);
+          setStatus("motorStatus", state.motor);
+          setText(
+            "lastGestureValue",
+            formatValue(state.last_gesture, "Chưa có gesture"),
+          );
+          setText(
+            "lastCommandValue",
+            formatValue(state.last_command, "Chưa có lệnh"),
+          );
+          setText(
+            "lastPayloadValue",
+            formatValue(state.last_payload, "Chưa có payload"),
+          );
+          setText(
+            "deviceStateValue",
+            `LED: ${state.led || "OFF"}\nMotor: ${state.motor || "OFF"}`,
+          );
+        } catch (error) {
+          setText("lastMessageValue", "Không đọc được /api/state/");
+        }
+      }
+
+      setInterval(refreshState, 2000);
+      refreshState();
+    </script>
+  </body>
 </html>

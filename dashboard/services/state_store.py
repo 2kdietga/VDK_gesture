@@ -15,6 +15,8 @@ DEFAULT_STATE = {
     "led": "OFF",
     "motor": "OFF",
     "last_gesture": [],
+    "last_move": None,
+    "gesture_event_id": 0,
     "last_payload": None,
     "last_command": None,
     "last_message": "Chua co du lieu",

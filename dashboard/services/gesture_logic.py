@@ -1,4 +1,3 @@
-from datetime import datetime
 from django.utils import timezone
 
 from .state_store import load_state, save_state
@@ -45,6 +44,29 @@ def normalize_sequence(value):
     return sequence
 
 
+def normalize_gestures(value):
+    if isinstance(value, dict):
+        value = value.get("sequence") or value.get("gesture") or value.get("direction") or value.get("move")
+
+    if isinstance(value, str):
+        parts = value.replace(",", " ").split()
+    elif isinstance(value, list):
+        parts = value
+    else:
+        raise ValueError("payload phai la gesture hoac sequence")
+
+    gestures = [str(x).strip().upper() for x in parts if str(x).strip()]
+
+    if len(gestures) not in {1, 4}:
+        raise ValueError("payload phai co 1 gesture de choi game hoac 4 gesture de dieu khien")
+
+    for item in gestures:
+        if item not in VALID_GESTURES:
+            raise ValueError(f"gesture khong hop le: {item}")
+
+    return gestures
+
+
 def handle_gesture_payload(payload, esp32_ip=None, esp32_port=None):
     state = load_state()
 
@@ -58,12 +80,23 @@ def handle_gesture_payload(payload, esp32_ip=None, esp32_port=None):
     state["last_payload"] = payload
 
     try:
-        if isinstance(payload, dict):
-            raw_sequence = payload.get("sequence")
-        else:
-            raw_sequence = payload
+        gestures = normalize_gestures(payload)
 
-        sequence = normalize_sequence(raw_sequence)
+        if len(gestures) == 1:
+            gesture = gestures[0]
+            state["last_gesture"] = [gesture]
+            state["last_move"] = gesture
+            state["gesture_event_id"] = int(state.get("gesture_event_id", 0)) + 1
+            state["last_command"] = None
+            state["last_message"] = f"Nhan gesture don: {gesture}"
+            save_state(state)
+
+            return {
+                "ok": True,
+                "received": gesture,
+            }
+
+        sequence = gestures
     except Exception as e:
         state["last_message"] = f"Gesture loi: {e}"
         save_state(state)

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gesture Maze</title>
+
+  <style>
+    :root {
+      --bg: #f1f5f3;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d8e0ea;
+      --blue: #2563eb;
+      --green: #12805c;
+      --shadow: 0 18px 45px rgba(23, 32, 51, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .page {
+      width: min(980px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 24px 0 36px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    h1,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 4px;
+      font-size: clamp(28px, 5vw, 42px);
+      letter-spacing: 0;
+      line-height: 1.05;
+    }
+
+    .subtle {
+      margin-bottom: 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .nav-link,
+    .tool-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 220px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .board-wrap,
+    .side {
+      border: 1px solid rgba(216, 224, 234, 0.9);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .board-wrap {
+      padding: 14px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+
+    .side {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .stat {
+      min-height: 70px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfdff;
+    }
+
+    .stat span {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .stat strong {
+      display: block;
+      overflow-wrap: anywhere;
+      font-size: 20px;
+    }
+
+    .status {
+      min-height: 84px;
+      padding: 12px;
+      border: 1px solid #c8d8ff;
+      border-radius: 8px;
+      background: #e8f0ff;
+      color: #26456d;
+      font-weight: 800;
+      line-height: 1.4;
+    }
+
+    .tool-btn {
+      width: 100%;
+      background: var(--blue);
+      color: #fff;
+      border-color: var(--blue);
+    }
+
+    @media (max-width: 780px) {
+      .topbar,
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        display: grid;
+      }
+
+      .side {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .status,
+      .tool-btn {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .page {
+        width: min(100% - 20px, 980px);
+        padding-top: 18px;
+      }
+
+      .board-wrap {
+        padding: 8px;
+      }
+
+      .side {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<main class="page">
+  <header class="topbar">
+    <div>
+      <h1>Gesture Maze</h1>
+      <p class="subtle">Nhan vat di tung o qua ban phim hoac gesture ESP32.</p>
+    </div>
+    <a class="nav-link" href="{% url 'dashboard_home' %}">Home</a>
+  </header>
+
+  <section class="shell" aria-label="Gesture Maze">
+    <div class="board-wrap">
+      <canvas id="mazeCanvas" width="640" height="640"></canvas>
+    </div>
+
+    <aside class="side">
+      <div class="stat">
+        <span>Moves</span>
+        <strong id="moveCount">0</strong>
+      </div>
+      <div class="stat">
+        <span>Last input</span>
+        <strong id="lastInput">-</strong>
+      </div>
+      <div class="stat">
+        <span>ESP32 event</span>
+        <strong id="eventId">0</strong>
+      </div>
+      <div class="status" id="gameStatus">Ready</div>
+      <button class="tool-btn" id="resetBtn" type="button">Reset</button>
+    </aside>
+  </section>
+</main>
+
+<script>
+  const canvas = document.getElementById("mazeCanvas");
+  const ctx = canvas.getContext("2d");
+  const moveCountEl = document.getElementById("moveCount");
+  const lastInputEl = document.getElementById("lastInput");
+  const eventIdEl = document.getElementById("eventId");
+  const gameStatusEl = document.getElementById("gameStatus");
+  const resetBtn = document.getElementById("resetBtn");
+
+  const maze = [
+    "#############",
+    "#S....#.....#",
+    "#.###.#.###.#",
+    "#...#.#...#.#",
+    "###.#.###.#.#",
+    "#...#.....#.#",
+    "#.#######.#.#",
+    "#.....#...#.#",
+    "#####.#.###.#",
+    "#...#.#.....#",
+    "#.#.#.#####.#",
+    "#.#.......#E#",
+    "#############",
+  ];
+
+  const directions = {
+    UP: { x: 0, y: -1 },
+    DOWN: { x: 0, y: 1 },
+    LEFT: { x: -1, y: 0 },
+    RIGHT: { x: 1, y: 0 },
+  };
+
+  const keyMap = {
+    ArrowUp: "UP",
+    ArrowDown: "DOWN",
+    ArrowLeft: "LEFT",
+    ArrowRight: "RIGHT",
+  };
+
+  const start = { x: 1, y: 1 };
+  const exit = { x: 11, y: 11 };
+  let player = { ...start };
+  let moves = 0;
+  let won = false;
+  let lastGestureEventId = null;
+
+  function tileSize() {
+    return canvas.width / maze.length;
+  }
+
+  function drawRoundedRect(x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function draw() {
+    const size = tileSize();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#f8fafc";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (let y = 0; y < maze.length; y += 1) {
+      for (let x = 0; x < maze[y].length; x += 1) {
+        const tile = maze[y][x];
+        const px = x * size;
+        const py = y * size;
+
+        if (tile === "#") {
+          ctx.fillStyle = "#172033";
+          drawRoundedRect(px + 3, py + 3, size - 6, size - 6, 7);
+        } else {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(px, py, size, size);
+        }
+
+        if (tile === "S") {
+          ctx.fillStyle = "#dff7ec";
+          ctx.fillRect(px + 5, py + 5, size - 10, size - 10);
+        }
+
+        if (tile === "E") {
+          ctx.fillStyle = "#fdecc8";
+          ctx.fillRect(px + 5, py + 5, size - 10, size - 10);
+          ctx.fillStyle = "#b45309";
+          ctx.beginPath();
+          ctx.arc(px + size / 2, py + size / 2, size * 0.22, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    ctx.fillStyle = won ? "#12805c" : "#2563eb";
+    ctx.beginPath();
+    ctx.arc(
+      player.x * size + size / 2,
+      player.y * size + size / 2,
+      size * 0.28,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(player.x * size + size * 0.4, player.y * size + size * 0.42, size * 0.055, 0, Math.PI * 2);
+    ctx.arc(player.x * size + size * 0.6, player.y * size + size * 0.42, size * 0.055, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function updateStats(input) {
+    moveCountEl.textContent = moves;
+    if (input) {
+      lastInputEl.textContent = input;
+    }
+    gameStatusEl.textContent = won ? "Finished" : "Playing";
+  }
+
+  function move(direction, source) {
+    if (won || !directions[direction]) {
+      return;
+    }
+
+    const next = {
+      x: player.x + directions[direction].x,
+      y: player.y + directions[direction].y,
+    };
+
+    if (maze[next.y][next.x] === "#") {
+      lastInputEl.textContent = `${source}: ${direction}`;
+      gameStatusEl.textContent = "Blocked";
+      draw();
+      return;
+    }
+
+    player = next;
+    moves += 1;
+    lastInputEl.textContent = `${source}: ${direction}`;
+
+    if (player.x === exit.x && player.y === exit.y) {
+      won = true;
+    }
+
+    updateStats();
+    draw();
+  }
+
+  function resetGame() {
+    player = { ...start };
+    moves = 0;
+    won = false;
+    lastInputEl.textContent = "-";
+    gameStatusEl.textContent = "Ready";
+    updateStats();
+    draw();
+  }
+
+  async function pollGesture() {
+    try {
+      const response = await fetch("{% url 'state_api' %}", { cache: "no-store" });
+      if (!response.ok) {
+        return;
+      }
+
+      const state = await response.json();
+      const eventId = Number(state.gesture_event_id || 0);
+      eventIdEl.textContent = eventId;
+
+      if (lastGestureEventId === null) {
+        lastGestureEventId = eventId;
+        return;
+      }
+
+      if (eventId !== lastGestureEventId) {
+        lastGestureEventId = eventId;
+        move(state.last_move, "ESP32");
+      }
+    } catch (error) {
+      gameStatusEl.textContent = "API offline";
+    }
+  }
+
+  document.addEventListener("keydown", (event) => {
+    const direction = keyMap[event.key];
+    if (!direction) {
+      return;
+    }
+
+    event.preventDefault();
+    move(direction, "Keyboard");
+  });
+
+  resetBtn.addEventListener("click", resetGame);
+
+  resetGame();
+  setInterval(pollGesture, 250);
+  pollGesture();
+</script>
+</body>
+</html>

@@ -93,7 +93,7 @@ def main():
                 payload_text = payload_raw
                 payload = json.loads(payload_text)
             except Exception:
-                payload = None
+                payload = payload_raw
 
             result = handle_gesture_payload(
                 payload=payload,

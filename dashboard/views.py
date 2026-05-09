@@ -7,14 +7,6 @@ from .services.gesture_logic import ACTION_COMMANDS, normalize_sequence
 from .services.state_store import load_state, save_state
 
 
-ACTION_LABELS = {
-    "led_on": "Bật đèn",
-    "led_off": "Tắt đèn",
-    "motor_on": "Bật quạt",
-    "motor_off": "Tắt quạt",
-}
-
-
 def dashboard_home(request):
     state = load_state()
 
@@ -25,10 +17,13 @@ def dashboard_home(request):
     context = {
         "state": state,
         "rules_text": rules_text,
-        "action_labels": ACTION_LABELS,
     }
 
     return render(request, "dashboard/home.html", context)
+
+
+def entertainment(request):
+    return render(request, "dashboard/entertainment.html")
 
 
 @require_POST
